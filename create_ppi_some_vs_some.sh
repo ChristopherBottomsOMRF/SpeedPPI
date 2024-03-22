@@ -1,3 +1,8 @@
+#!/bin/bash -l
+
+# Get absolute location of this current script so that we can refer to its neighbor resources
+export this_dir=$(dirname $(realpath $0))
+
 #Create a PPI network
 
 #ARGS
@@ -8,7 +13,7 @@ HHBLITS=$3 #Path to HHblits
 PDOCKQ_T=$4
 OUTDIR=$5
 #DEFAULT
-UNICLUST=./data/uniclust30_2018_08/uniclust30_2018_08 #Assume path according to setup
+UNICLUST=$this_dir/data/uniclust30_2018_08/uniclust30_2018_08 #Assume path according to setup
 
 
 #The pipeline starts here
@@ -21,7 +26,7 @@ if [ -f "$FASTADIR/id_seqs.csv" ]; then
   echo "Remove the directory $FASTADIR if you want to write new fastas."
 else
 mkdir -p $FASTADIR
-python3 ./src/preprocess_fasta.py --fasta_file $FASTA_SEQS1 \
+python3 $this_dir/src/preprocess_fasta.py --fasta_file $FASTA_SEQS1 \
 --outdir $FASTADIR
 echo "Writing fastas of each sequence to $FASTADIR"
 fi
@@ -33,7 +38,7 @@ if [ -f "$FASTADIR/id_seqs.csv" ]; then
   echo "Remove the directory $FASTADIR if you want to write new fastas."
 else
 mkdir $FASTADIR
-python3 ./src/preprocess_fasta.py --fasta_file $FASTA_SEQS2 \
+python3 $this_dir/src/preprocess_fasta.py --fasta_file $FASTA_SEQS2 \
 --outdir $FASTADIR
 echo "Writing fastas of each sequence to $FASTADIR"
 fi
@@ -81,14 +86,14 @@ PR_CSV1=$OUTDIR/fasta1/id_seqs.csv
 PR_CSV2=$OUTDIR/fasta2/id_seqs.csv
 NUM_PREDS=$(wc -l $PR_CSV1|cut -d ' ' -f 1)
 NUM_PREDS=$(($NUM_PREDS-1))
-DATADIR=./data/
+DATADIR=$this_dir/data/
 RECYCLES=10
 NUM_CPUS=1
 for (( c=1; c<=$NUM_PREDS; c++ ))
 do
   mkdir $OUTDIR'/pred'$c'/'
   echo Running pred $c out of $NUM_PREDS
-  python3 ./src/run_alphafold_some_vs_some.py --protein_csv1 $PR_CSV1 \
+  python3 $this_dir/src/run_alphafold_some_vs_some.py --protein_csv1 $PR_CSV1 \
   --protein_csv2 $PR_CSV2 \
     --target_row $c \
     --msa_dir $MSADIR \
@@ -102,7 +107,7 @@ done
 #4. Merge all predictions to construct a PPI network.
 #When the pDockQ > 0.5, the PPV is >0.9 (https://www.nature.com/articles/s41467-022-28865-w, https://www.nature.com/articles/s41594-022-00910-8)
 #The default threshold to construct edges (links) is 0.5
-python3 ./src/build_ppi.py --pred_dir $OUTDIR/ \
+python3 $this_dir/src/build_ppi.py --pred_dir $OUTDIR/ \
 --pdockq_t $PDOCKQ_T --outdir $OUTDIR/
 
 #5. Move all high-confidence predictions to a dir
